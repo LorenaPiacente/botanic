@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+🌿 Botanic - Gerenciador de Plantas
 
-## Getting Started
+O Botanic é uma aplicação web full-stack desenvolvida para o gerenciamento de inventário de plantas. O projeto permite visualizar, cadastrar, editar e remover espécies, integrando uma interface moderna em React com um banco de dados NoSQL na nuvem.
 
-First, run the development server:
 
-```bash
+
+🚀 Tecnologias Utilizadas
+
+Framework: Next.js (App Router)
+
+Linguagem: JavaScript
+
+Banco de Dados: MongoDB Atlas (NoSQL)
+
+Estilização: CSS Modules / Tailwind
+
+Segurança: Variáveis de Ambiente (.env)
+
+
+
+🛠️ Funcionalidades
+
+CRUD Completo: Criação, Leitura, Atualização e Exclusão de plantas.
+
+Persistência Real: Dados salvos em um cluster remoto do MongoDB.
+
+Segurança de Dados: Proteção de credenciais de banco de dados via variáveis de ambiente.
+
+Seed Automático: Script para popular o banco de dados instantaneamente para demonstração.
+
+
+
+🏁 Como Rodar o Projeto
+
+1. Clonar o repositório
+
+git clone [https://github.com/LorenaPiacente/botanic.git](https://github.com/LorenaPiacente/botanic.git)
+cd botanic
+
+
+2. Instalar dependências
+
+npm install
+
+
+3. Configurar Variáveis de Ambiente
+
+Crie um arquivo chamado .env.local na raiz do projeto e adicione sua string de conexão do MongoDB:
+
+MONGODB_URI=sua_string_de_conexao_aqui
+
+
+4. Popular o Banco de Dados (Opcional)
+
+Para iniciar o projeto já com algumas plantas de exemplo (como Costela-de-Adão e Xanadú), execute:
+
+node seed.js
+
+
+5. Iniciar o Servidor de Desenvolvimento
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Acesse http://localhost:3000 no seu navegador.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+📂 Estrutura de Pastas Relevante
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+/src/app/api/plantas: Endpoints da API (GET, POST, PUT, DELETE).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+/src/app/api/mongodb.js: Configuração do cliente MongoDB.
 
-## Deploy on Vercel
+seed.js: Script de automação para população inicial de dados.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+👤 Autora
+
+Lorena Piacente - Desenvolvedora Full-Stack em transição (Arquitetura & TI)
