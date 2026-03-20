@@ -1,49 +1,94 @@
-import { bibliotecaPlantas } from "../data";
+import clientPromise from "../mongodb";
+import { ObjectId } from "mongodb";
 
+// GET: Busca todas as plantas no MongoDB
 export async function GET() {
-    return Response.json(bibliotecaPlantas);
-}
-
-export async function POST(request) {
-    const novaPlanta = await request.json();
-    novaPlanta.id = Date.now();
-    bibliotecaPlantas.push(novaPlanta);
-
-    return Response.json(novaPlanta, {status: 201});
-}
-
-// DELETE: Remove uma planta da lista baseada no ID enviado na URL
-export async function DELETE(request) {
-  // 1. Extrai o ID da URL (ex: /api/plantas?id=123)
-  const { searchParams } = new URL(request.url);
-  const idParaRemover = Number(searchParams.get('id'));
-
-  // 2. Procura a posição da planta no array
-  const index = bibliotecaPlantas.findIndex(p => p.id === idParaRemover);
-  
-  if (index !== -1) {
-    // 3. Remove 1 item naquela posição específica
-    bibliotecaPlantas.splice(index, 1);
-    return Response.json({ mensagem: "Removido com sucesso" });
+  try {
+    const client = await clientPromise;
+    const db = client.db("botanic_db");
+    const plantas = await db.collection("plantas").find({}).toArray();
+    
+    // Convertemos o _id do MongoDB para uma string 'id' para facilitar o uso no React
+    return Response.json(plantas.map(p => ({
+      ...p,
+      id: p._id.toString() 
+    })));
+  } catch (e) {
+    return Response.json({ error: "Erro ao conectar ao banco" }, { status: 500 });
   }
+}
 
-  // 4. Se o ID não existir, avisa o Front-end
-  return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
+// POST: Salva uma nova planta
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const client = await clientPromise;
+    const db = client.db("botanic_db");
+    
+    // Inserimos o objeto completo que veio do formulário
+    const resultado = await db.collection("plantas").insertOne(body);
+    
+    return Response.json({ 
+      ...body, 
+      id: resultado.insertedId.toString() 
+    }, { status: 201 });
+  } catch (e) {
+    return Response.json({ error: "Erro ao salvar" }, { status: 500 });
+  }
+}
+
+// DELETE: Remove uma planta baseada no ID (ObjectId)
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) return Response.json({ error: "ID não fornecido" }, { status: 400 });
+
+    const client = await clientPromise;
+    const db = client.db("botanic_db");
+
+    // No MongoDB, precisamos envolver o ID com o comando new ObjectId()
+    const resultado = await db.collection("plantas").deleteOne({ 
+      _id: new ObjectId(id) 
+    });
+
+    if (resultado.deletedCount === 1) {
+      return Response.json({ mensagem: "Removido com sucesso" });
+    }
+    
+    return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
+  } catch (e) {
+    return Response.json({ error: "Erro ao excluir" }, { status: 500 });
+  }
 }
 
 // PUT: Atualiza uma planta existente
 export async function PUT(request) {
-  const { searchParams } = new URL(request.url);
-  const idParaEditar = Number(searchParams.get('id'));
-  const dadosNovos = await request.json();
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const dadosNovos = await request.json();
 
-  const index = bibliotecaPlantas.findIndex(p => p.id === idParaEditar);
-  
-  if (index !== -1) {
-    // Mesclamos os dados antigos com os novos, mantendo o ID original
-    bibliotecaPlantas[index] = { ...bibliotecaPlantas[index], ...dadosNovos };
-    return Response.json(bibliotecaPlantas[index]);
+    if (!id) return Response.json({ error: "ID não fornecido" }, { status: 400 });
+
+    const client = await clientPromise;
+    const db = client.db("botanic_db");
+
+    // O comando $set do MongoDB atualiza apenas os campos enviados
+    const resultado = await db.collection("plantas").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: dadosNovos }
+    );
+
+    if (resultado.matchedCount === 1) {
+      // Buscamos o objeto atualizado para devolver ao Front-end
+      const plantaAtualizada = await db.collection("plantas").findOne({ _id: new ObjectId(id) });
+      return Response.json({ ...plantaAtualizada, id: plantaAtualizada._id.toString() });
+    }
+
+    return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
+  } catch (e) {
+    return Response.json({ error: "Erro ao atualizar" }, { status: 500 });
   }
-
-  return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
 }
