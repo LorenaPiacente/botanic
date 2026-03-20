@@ -71,6 +71,26 @@ export default function Home() {
     }
   };
 
+  // 3. Função para deletar uma planta
+  const handleDeletarPlanta = async (id) => {
+    if (!confirm("Tem certeza que deseja excluir esta planta?")) return;
+
+    try {
+      const res = await fetch(`/api/plantas?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        // Atualiza a tela filtrando a lista local
+        setPlantas(plantas.filter(p => p.id !== id));
+      } else {
+        setErro("Não foi possível excluir a planta.");
+      }
+    } catch (error) {
+      setErro("Erro de rede ao tentar excluir.");
+    }
+  };
+
   return (
     <main className="p-10 font-sans bg-gray-50 min-h-screen text-gray-900">
       <h1 className="text-3xl font-bold mb-6 text-green-800">
@@ -145,6 +165,13 @@ export default function Home() {
                   {planta.uso || "Geral"}
                 </span>
               </div>
+
+              <button 
+                onClick={() => handleDeletarPlanta(planta.id)}
+                className="mt-4 text-red-600 text-sm font-bold hover:underline"
+              >
+                Excluir Planta
+              </button>
             </div>
           ))}
         </div>
