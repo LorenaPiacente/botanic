@@ -9,6 +9,8 @@ export default function Home() {
   // Estados para os campos do formulário
   const [nome, setNome] = useState('');
   const [nomeCientifico, setNomeCientifico] = useState('');
+  const [uso, setUso] = useState('');
+  const [clima, setClima] = useState('');
 
   // Estado para saber se estamos editando (guarda o ID da planta) ou criando (null)
   const [editandoId, setEditandoId] = useState(null);
@@ -44,9 +46,8 @@ export default function Home() {
     const dadosPlanta = { 
       nome, 
       nomeCientifico, 
-      uso: "Geral", 
-      clima: "Adaptável" 
-    };
+      uso, 
+      clima };
 
     try {
       // Se tivermos um editandoId, o método é PUT e a URL leva o ID
@@ -73,6 +74,8 @@ export default function Home() {
         // Limpa tudo após o sucesso
         setNome('');
         setNomeCientifico('');
+        setUso('');
+        setClima('');
         setEditandoId(null);
       } else {
         setErro("Não foi possível processar a requisição.");
@@ -106,6 +109,8 @@ export default function Home() {
     setEditandoId(planta.id); // Define qual ID estamos editando
     setNome(planta.nome);      // Preenche o input Nome
     setNomeCientifico(planta.nomeCientifico); // Preenche o Nome Científico
+    setUso(planta.uso || ''); // Carrega o uso original
+    setClima(planta.clima || ''); // Carrega o clima original
     window.scrollTo(0, 0);    // Sobe a página para o usuário ver o formulário preenchido
   };
 
@@ -151,6 +156,26 @@ export default function Home() {
           className="w-full p-2.5 border rounded-lg mb-6 bg-white focus:ring-2 focus:ring-green-500 outline-none"
           required
         />
+
+        <label className="block text-sm font-medium text-gray-600 mb-1">Uso / Categoria</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Ornamental, Bordadura..." 
+            value={uso}
+            onChange={(e) => setUso(e.target.value)}
+            className="w-full p-2 border rounded mb-4"
+            required
+          />
+
+          <label className="block text-sm font-medium text-gray-600 mb-1">Clima Ideal</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Sol Pleno, Meia Sombra..." 
+            value={clima}
+            onChange={(e) => setClima(e.target.value)}
+            className="w-full p-2 border rounded mb-4"
+            required
+          />
 
         <div className="flex gap-2">
           <button type="submit" className="flex-1 bg-green-700 text-white font-bold py-3 rounded-lg hover:bg-green-800 transition-colors shadow-md">
