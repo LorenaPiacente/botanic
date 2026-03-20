@@ -10,27 +10,24 @@ export default function Home() {
   const [nome, setNome] = useState('');
   const [nomeCientifico, setNomeCientifico] = useState('');
 
-  // 1. Função para buscar os dados (GET) - Agora com tratamento de erro visível
+  // Estado para saber se estamos editando (guarda o ID da planta) ou criando (null)
+  const [editandoId, setEditandoId] = useState(null);
+
+  // 1. Função para buscar os dados (GET)
   const buscarPlantas = useCallback(async () => {
     try {
       setCarregando(true);
       setErro(null);
-      
-      // Tentamos buscar na rota absoluta para evitar problemas de IP
       const res = await fetch('/api/plantas', { cache: 'no-store' });
       
-      if (!res.ok) {
-        throw new Error(`Erro do Servidor: ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Erro: ${res.status}`);
 
       const data = await res.json();
       setPlantas(Array.isArray(data) ? data : []);
       
     } catch (error) {
-      console.error("Erro detalhado:", error);
-      setErro("Falha ao conectar com a API. Verifique se a pasta api/plantas/route.js existe.");
+      setErro("Falha ao conectar com a API.");
     } finally {
-      //Garantir que o "Carregando" saia da tela dando certo ou errado
       setCarregando(false);
     }
   }, []);
@@ -39,32 +36,46 @@ export default function Home() {
     buscarPlantas();
   }, [buscarPlantas]);
 
-  // 2. Função para enviar os dados (POST)
-  const handleAddPlanta = async (e) => {
+  // 2. Função unificada para Salvar (Criação ou Edição)
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErro(null);
 
-    const novaPlanta = { 
+    const dadosPlanta = { 
       nome, 
       nomeCientifico, 
       uso: "Geral", 
-      clima: "Adaptável"
+      clima: "Adaptável" 
     };
 
     try {
-      const res = await fetch('/api/plantas', {
-        method: 'POST',
+      // Se tivermos um editandoId, o método é PUT e a URL leva o ID
+      const metodo = editandoId ? 'PUT' : 'POST';
+      const url = editandoId ? `/api/plantas?id=${editandoId}` : '/api/plantas';
+
+      const res = await fetch(url, {
+        method: metodo,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(novaPlanta),
+        body: JSON.stringify(dadosPlanta),
       });
 
       if (res.ok) {
-        const plantaSalva = await res.json();
-        setPlantas(prev => [...prev, plantaSalva]);
+        const plantaResultado = await res.json();
+        
+        if (editandoId) {
+          // Se estava editando, substitui o item antigo pelo novo na lista
+          setPlantas(plantas.map(p => p.id === editandoId ? plantaResultado : p));
+        } else {
+          // Se era novo, adiciona ao final da lista
+          setPlantas(prev => [...prev, plantaResultado]);
+        }
+
+        // Limpa tudo após o sucesso
         setNome('');
         setNomeCientifico('');
+        setEditandoId(null);
       } else {
-        setErro("Não foi possível salvar a planta.");
+        setErro("Não foi possível processar a requisição.");
       }
     } catch (error) {
       setErro("Erro de rede ao tentar salvar.");
@@ -81,7 +92,6 @@ export default function Home() {
       });
 
       if (res.ok) {
-        // Atualiza a tela filtrando a lista local
         setPlantas(plantas.filter(p => p.id !== id));
       } else {
         setErro("Não foi possível excluir a planta.");
@@ -91,29 +101,36 @@ export default function Home() {
     }
   };
 
+  // 4. Função que prepara o formulário para edição
+  const prepararEdicao = (planta) => {
+    setEditandoId(planta.id); // Define qual ID estamos editando
+    setNome(planta.nome);      // Preenche o input Nome
+    setNomeCientifico(planta.nomeCientifico); // Preenche o Nome Científico
+    window.scrollTo(0, 0);    // Sobe a página para o usuário ver o formulário preenchido
+  };
+
+  // Função extra para cancelar a edição caso o usuário desista
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setNome('');
+    setNomeCientifico('');
+  };
+
   return (
     <main className="p-10 font-sans bg-gray-50 min-h-screen text-gray-900">
-      <h1 className="text-3xl font-bold mb-6 text-green-800">
-        Botanic: Paisagismo
-      </h1>
+      <h1 className="text-3xl font-bold mb-6 text-green-800">Botanic: Paisagismo</h1>
 
-      {/* Alerta de Erro - Se algo falhar, aparecerá aqui em vez de ficar carregando */}
       {erro && (
         <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 shadow-sm">
-          <p className="font-bold">Ops!</p>
-          <p>{erro}</p>
-          <button 
-            onClick={buscarPlantas}
-            className="mt-2 text-sm underline hover:text-red-900"
-          >
-            Tentar novamente
-          </button>
+          <p>{erro} <button onClick={buscarPlantas} className="underline">Tentar novamente</button></p>
         </div>
       )}
 
-      {/* Formulário de Cadastro */}
-      <form onSubmit={handleAddPlanta} className="mb-10 p-6 bg-white rounded-lg shadow-md max-w-md border border-gray-200">
-        <h2 className="text-xl font-bold mb-4 text-gray-700">Novo Registro</h2>
+      {/* Formulário: agora o onSubmit chama a função unificada handleSubmit */}
+      <form onSubmit={handleSubmit} className="mb-10 p-6 bg-white rounded-lg shadow-md max-w-md border border-gray-200">
+        <h2 className="text-xl font-bold mb-4 text-gray-700">
+          {editandoId ? "Editar Planta" : "Novo Registro"}
+        </h2>
         
         <label className="block text-sm font-medium text-gray-600 mb-1">Nome Comum</label>
         <input 
@@ -135,43 +152,63 @@ export default function Home() {
           required
         />
 
-        <button type="submit" className="w-full bg-green-700 text-white font-bold py-3 rounded-lg hover:bg-green-800 transition-colors shadow-md">
-          Salvar na Biblioteca
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" className="flex-1 bg-green-700 text-white font-bold py-3 rounded-lg hover:bg-green-800 transition-colors shadow-md">
+            {editandoId ? "Atualizar Dados" : "Salvar na Biblioteca"}
+          </button>
+          
+          {/* Botão de Cancelar só aparece se estiver editando */}
+          {editandoId && (
+            <button 
+              type="button" 
+              onClick={cancelarEdicao}
+              className="bg-gray-400 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-500"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
 
-      {/* Listagem */}
       <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">Sua Coleção</h2>
       
       {carregando ? (
-        <div className="flex items-center gap-3 text-gray-500 italic">
-          <span className="animate-spin text-2xl">⏳</span>
-          <p>Sincronizando dados com o servidor...</p>
-        </div>
+        <p className="italic text-gray-500">Buscando dados...</p>
       ) : plantas.length === 0 ? (
-        <p className="text-gray-500 bg-white p-4 rounded border italic">A biblioteca está vazia no momento.</p>
+        <p className="text-gray-500 italic">A biblioteca está vazia.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {plantas.map(planta => (
-            <div key={planta.id} className="p-5 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div key={planta.id} className="p-5 bg-white rounded-xl shadow-sm border border-gray-100">
               <h3 className="text-lg font-bold text-green-900 mb-1">{planta.nome}</h3>
               <p className="text-sm italic text-gray-500 mb-3">{planta.nomeCientifico}</p>
               
               <div className="flex gap-2">
-                <span className="bg-green-50 text-green-700 text-[10px] uppercase font-bold px-2 py-1 rounded border border-green-100">
+                <span className="bg-green-50 text-green-700 text-[10px] uppercase font-bold px-2 py-1 rounded">
                   {planta.clima || "Adaptável"}
                 </span>
-                <span className="bg-blue-50 text-blue-700 text-[10px] uppercase font-bold px-2 py-1 rounded border border-blue-100">
+                <span className="bg-blue-50 text-blue-700 text-[10px] uppercase font-bold px-2 py-1 rounded">
                   {planta.uso || "Geral"}
                 </span>
               </div>
 
-              <button 
-                onClick={() => handleDeletarPlanta(planta.id)}
-                className="mt-4 text-red-600 text-sm font-bold hover:underline"
-              >
-                Excluir Planta
-              </button>
+              <div className="mt-4 flex gap-4">
+                {/* Botão para iniciar a edição */}
+                <button 
+                  onClick={() => prepararEdicao(planta)}
+                  className="text-blue-600 text-sm font-bold hover:underline"
+                >
+                  Editar
+                </button>
+
+                {/* Botão para deletar */}
+                <button 
+                  onClick={() => handleDeletarPlanta(planta.id)}
+                  className="text-red-600 text-sm font-bold hover:underline"
+                >
+                  Excluir
+                </button>
+              </div>
             </div>
           ))}
         </div>

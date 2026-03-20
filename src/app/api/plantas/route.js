@@ -30,3 +30,20 @@ export async function DELETE(request) {
   // 4. Se o ID não existir, avisa o Front-end
   return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
 }
+
+// PUT: Atualiza uma planta existente
+export async function PUT(request) {
+  const { searchParams } = new URL(request.url);
+  const idParaEditar = Number(searchParams.get('id'));
+  const dadosNovos = await request.json();
+
+  const index = bibliotecaPlantas.findIndex(p => p.id === idParaEditar);
+  
+  if (index !== -1) {
+    // Mesclamos os dados antigos com os novos, mantendo o ID original
+    bibliotecaPlantas[index] = { ...bibliotecaPlantas[index], ...dadosNovos };
+    return Response.json(bibliotecaPlantas[index]);
+  }
+
+  return Response.json({ mensagem: "Planta não encontrada" }, { status: 404 });
+}
